@@ -4,8 +4,8 @@ A decentralized parametric insurance dApp for flight delays built on Sui testnet
 
 ## 🚀 Live Deployment
 
-- **Contract Package ID**: `0x5ca97a7f3b2b9608848d234255cd34c50d6378d0155b9d779a68029b87fda700`
-- **Insurance Pool Object ID**: `0x48ee799b814ccbdfb178ce0e248a80879354e97ac7778d20ad5e9c0182eea90c`
+- **Contract Package ID**: `0x7788b278f587e452b73e5ea5ea0050182d10e12db290470357ada1bd86607446`
+- **Insurance Pool Object ID**: `0x7467219271f28dde5376588eae0b5d933ec2de06c294082450899617a26d679b`
 - **Network**: Sui Testnet
 
 ## 📋 Features
