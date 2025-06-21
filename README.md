@@ -31,6 +31,7 @@ A decentralized parametric insurance dApp for flight delays built on Sui testnet
 - **Frontend**: React + TypeScript
 - **Wallet Integration**: @mysten/wallet-kit
 - **Styling**: Tailwind CSS
+- **AviationStack**: API for real time flight data
 
 ## 💡 Why Parametric Flight Delay Insurance on Sui Has Product-Market Fit
 
