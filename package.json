@@ -1,0 +1,21 @@
+{
+  "name": "flight-insurance-v2",
+  "version": "1.0.0",
+  "description": "Flight Delay Insurance on Sui Testnet",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:contract\" \"npm run dev:frontend\"",
+    "dev:contract": "cd packages/contract && sui move build",
+    "dev:frontend": "cd packages/frontend && npm run dev",
+    "build": "npm run build:contract && npm run build:frontend",
+    "build:contract": "cd packages/contract && sui move build",
+    "build:frontend": "cd packages/frontend && npm run build",
+    "deploy": "cd packages/contract && sui client publish --gas-budget 10000000"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+} 
