@@ -16,6 +16,8 @@ module flight_delay_insurance::flight_insurance {
     const EINVALID_STATUS: u64 = 4;
     const EPOLICY_NOT_FOUND: u64 = 5;
     const EINSUFFICIENT_FUNDS: u64 = 6;
+    const EPOLICY_ALREADY_CLAIMED: u64 = 7;
+    const EINVALID_OWNER: u64 = 8;
 
     /// Constants
     const MINIMUM_PREMIUM: u64 = 10_000_000; // 0.01 SUI
@@ -71,7 +73,7 @@ module flight_delay_insurance::flight_insurance {
             policies: table::new(ctx),
             policy_ids: vector::empty<ID>()
         };
-        transfer::share_object(pool);
+        transfer::transfer(pool, tx_context::sender(ctx));
     }
 
     /// Create a new insurance policy
@@ -137,6 +139,30 @@ module flight_delay_insurance::flight_insurance {
         )
     }
 
+    /// Check if policy exists in pool
+    public fun policy_exists(pool: &InsurancePool, policy_id: ID): bool {
+        table::contains(&pool.policies, policy_id)
+    }
+
+    /// Public function to check if policy exists (for debugging)
+    public entry fun check_policy_exists(pool: &InsurancePool, policy_id: ID): bool {
+        table::contains(&pool.policies, policy_id)
+    }
+
+    /// Get policy owner
+    public fun get_policy_owner(pool: &InsurancePool, policy_id: ID): address {
+        assert!(table::contains(&pool.policies, policy_id), EPOLICY_NOT_FOUND);
+        let policy = table::borrow(&pool.policies, policy_id);
+        policy.owner
+    }
+
+    /// Get policy status
+    public fun get_policy_status(pool: &InsurancePool, policy_id: ID): vector<u8> {
+        assert!(table::contains(&pool.policies, policy_id), EPOLICY_NOT_FOUND);
+        let policy = table::borrow(&pool.policies, policy_id);
+        policy.status
+    }
+
     /// Process a claim for a delayed flight
     public entry fun process_claim(
         pool: &mut InsurancePool,
@@ -144,9 +170,16 @@ module flight_delay_insurance::flight_insurance {
         delay_minutes: u64,
         ctx: &mut TxContext
     ) {
+        // Check if policy exists
+        assert!(table::contains(&pool.policies, policy_id), EPOLICY_NOT_FOUND);
+        
         // Get policy
         let policy = table::borrow_mut(&mut pool.policies, policy_id);
-        assert!(policy.owner == tx_context::sender(ctx), EINVALID_POLICY);
+        
+        // Validate policy owner
+        assert!(policy.owner == tx_context::sender(ctx), EINVALID_OWNER);
+        
+        // Check if policy is active
         assert!(policy.status == b"ACTIVE", EINVALID_STATUS);
 
         // Check if delay exceeds threshold
@@ -194,12 +227,72 @@ module flight_delay_insurance::flight_insurance {
         let mut i = 0u64;
         while (i < len) {
             let key = *vector::borrow(&pool.policy_ids, i);
-            let policy = table::borrow(&pool.policies, key);
-            if (policy.owner == owner) {
-                vector::push_back(&mut result_ids, key);
+            if (table::contains(&pool.policies, key)) {
+                let policy = table::borrow(&pool.policies, key);
+                if (policy.owner == owner) {
+                    vector::push_back(&mut result_ids, key);
+                };
             };
             i = i + 1;
         };
         result_ids
+    }
+
+    /// Get all policy IDs in the pool (for debugging)
+    public entry fun get_all_policy_ids(pool: &InsurancePool): vector<ID> {
+        pool.policy_ids
+    }
+
+    /// Get pool balance (for admin purposes)
+    public fun get_pool_balance(pool: &InsurancePool): u64 {
+        balance::value(&pool.balance)
+    }
+
+    /// Withdraw pool funds (admin function)
+    public entry fun withdraw_pool_funds(
+        pool: &mut InsurancePool,
+        amount: u64,
+        ctx: &mut TxContext
+    ) {
+        // Only pool creator can withdraw (you might want to add admin checks)
+        assert!(balance::value(&pool.balance) >= amount, EINSUFFICIENT_FUNDS);
+        let coins = coin::from_balance(balance::split(&mut pool.balance, amount), ctx);
+        transfer::public_transfer(coins, tx_context::sender(ctx));
+    }
+
+    /// Add funds to pool (for testing purposes)
+    public entry fun add_funds_to_pool(
+        pool: &mut InsurancePool,
+        funds: Coin<SUI>,
+        ctx: &mut TxContext
+    ) {
+        // Add the funds to the pool balance
+        balance::join(&mut pool.balance, coin::into_balance(funds));
+    }
+
+    /// Clean up corrupted policy IDs (admin function)
+    public entry fun cleanup_corrupted_policies(
+        pool: &mut InsurancePool,
+        corrupted_policy_ids: vector<ID>,
+        ctx: &mut TxContext
+    ) {
+        let len = vector::length(&corrupted_policy_ids);
+        let mut i = 0u64;
+        while (i < len) {
+            let policy_id = *vector::borrow(&corrupted_policy_ids, i);
+            // Remove from policy_ids vector if it exists
+            let policy_ids_len = vector::length(&pool.policy_ids);
+            let mut j = 0u64;
+            while (j < policy_ids_len) {
+                let current_id = *vector::borrow(&pool.policy_ids, j);
+                if (current_id == policy_id) {
+                    // Remove this corrupted policy ID
+                    vector::remove(&mut pool.policy_ids, j);
+                    break;
+                };
+                j = j + 1;
+            };
+            i = i + 1;
+        };
     }
 } 
