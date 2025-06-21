@@ -32,6 +32,19 @@ A decentralized parametric insurance dApp for flight delays built on Sui testnet
 - **Wallet Integration**: @mysten/wallet-kit
 - **Styling**: Tailwind CSS
 
+## 💡 Why Parametric Flight Delay Insurance on Sui Has Product-Market Fit
+
+- **Instant, Automated Payouts:** Smart contracts trigger compensation automatically when a flight delay meets the criteria—no paperwork, no manual claims, and no waiting. This solves a major pain point for travelers frustrated by slow, complicated insurance processes.
+
+- **Trustless and Transparent:** All policy terms, claims, and payouts are recorded on-chain, making the process transparent and verifiable for all parties. Users can trust that payouts are fair and not subject to insurer discretion.
+
+- **Seamless User Experience:** Policies can be purchased, managed, and claimed directly from a smartphone or web app, with real-time feedback and no need for intermediaries.
+
+- **Objective, Data-Driven Triggers:** Flight status is verified through third-party oracles or APIs, ensuring that claims are settled based on reliable, real-world data, not subjective interpretation.
+
+- **Global and Scalable:** The decentralized, blockchain-based approach enables coverage for flights worldwide, with the potential to scale rapidly and integrate with travel platforms.
+
+
 ## 🚀 Quick Start
 
 ### Prerequisites
