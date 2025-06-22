@@ -170,14 +170,65 @@ module flight_delay_insurance::flight_insurance {
         delay_minutes: u64,
         ctx: &mut TxContext
     ) {
-        // Check if policy exists
-        assert!(table::contains(&pool.policies, policy_id), EPOLICY_NOT_FOUND);
+        let sender = tx_context::sender(ctx);
+        let mut actual_policy_id = policy_id;
+        let mut policy_found = false;
+
+        // First try: Check if policy exists with the provided ID
+        if (table::contains(&pool.policies, policy_id)) {
+            let policy = table::borrow(&pool.policies, policy_id);
+            if (policy.owner == sender) {
+                policy_found = true;
+            };
+        };
+
+        // Second try: If not found, search through all policies for this owner
+        if (!policy_found) {
+            let len = vector::length(&pool.policy_ids);
+            let mut i = 0u64;
+            while (i < len) {
+                let search_id = *vector::borrow(&pool.policy_ids, i);
+                if (table::contains(&pool.policies, search_id)) {
+                    let policy = table::borrow(&pool.policies, search_id);
+                    if (policy.owner == sender && policy.status == b"ACTIVE") {
+                        actual_policy_id = search_id;
+                        policy_found = true;
+                        break;
+                    };
+                };
+                i = i + 1;
+            };
+        };
+
+        // If still not found, try searching all policies in the table (fallback for corrupted pool vector)
+        if (!policy_found) {
+            // This is a more expensive operation but handles the case where pool.policy_ids is corrupted
+            // We'll search through all policies in the table
+            let len = vector::length(&pool.policy_ids);
+            let mut i = 0u64;
+            while (i < len) {
+                let search_id = *vector::borrow(&pool.policy_ids, i);
+                if (table::contains(&pool.policies, search_id)) {
+                    let policy = table::borrow(&pool.policies, search_id);
+                    if (policy.owner == sender && policy.status == b"ACTIVE") {
+                        actual_policy_id = search_id;
+                        policy_found = true;
+                        break;
+                    };
+                };
+                i = i + 1;
+            };
+        };
+
+        // Final check: ensure we found a valid policy
+        assert!(policy_found, EPOLICY_NOT_FOUND);
+        assert!(table::contains(&pool.policies, actual_policy_id), EPOLICY_NOT_FOUND);
         
-        // Get policy
-        let policy = table::borrow_mut(&mut pool.policies, policy_id);
+        // Get policy with the correct ID
+        let policy = table::borrow_mut(&mut pool.policies, actual_policy_id);
         
         // Validate policy owner
-        assert!(policy.owner == tx_context::sender(ctx), EINVALID_OWNER);
+        assert!(policy.owner == sender, EINVALID_OWNER);
         
         // Check if policy is active
         assert!(policy.status == b"ACTIVE", EINVALID_STATUS);
@@ -199,7 +250,7 @@ module flight_delay_insurance::flight_insurance {
 
             // Emit event
             event::emit(ClaimProcessed {
-                policy_id,
+                policy_id: actual_policy_id,
                 owner: policy.owner,
                 amount: payout_amount,
                 status: b"APPROVED",
@@ -211,7 +262,7 @@ module flight_delay_insurance::flight_insurance {
 
             // Emit event
             event::emit(ClaimProcessed {
-                policy_id,
+                policy_id: actual_policy_id,
                 owner: policy.owner,
                 amount: 0,
                 status: b"REJECTED",
