@@ -138,7 +138,6 @@ Flight_Insurance_v2/
 
 - This is a testnet deployment for demonstration purposes
 - In production, additional security measures would be needed:
-  - Oracle integration for real flight data
   - Multi-signature admin controls
   - Rate limiting and anti-spam measures
   - Comprehensive audit
